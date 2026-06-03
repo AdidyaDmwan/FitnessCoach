@@ -15,6 +15,9 @@ struct FitnessCoachApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(healthKitService)
+                .task {
+                    await healthKitService.connectOnLaunch()
+                }
         }
     }
 }

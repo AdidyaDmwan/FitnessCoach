@@ -6,6 +6,7 @@ import Vision
 
 struct CameraFeedbackView: View {
     @StateObject private var camera: PoseCameraController
+    @State private var isWorkoutActive = false
 
     init(selectedMove: WorkoutMove = .squat) {
         _camera = StateObject(wrappedValue: PoseCameraController(selectedMove: selectedMove))
@@ -24,27 +25,36 @@ struct CameraFeedbackView: View {
             .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
-                liveBadge
-                    .padding(.top, 54)
-
                 cameraStage
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .top) {
+                        topBar
+                            .padding(.horizontal, 16)
+                            .padding(.top, 50)
+                    }
+                    .overlay(alignment: .topLeading) {
+                        if isWorkoutActive {
+                            compactRepsHUD
+                                .padding(.leading, 16)
+                                .padding(.top, 102)
+                        }
+                    }
+                    .overlay(alignment: .bottom) {
+                        if isWorkoutActive {
+                            activeFeedbackBar
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 18)
+                        }
+                    }
 
-                bottomPanel
-
-                Button(action: camera.resetCounter) {
-                    Text("End Session")
-                        .font(.system(size: 17, weight: .heavy))
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 62)
-                        .overlay(Capsule().stroke(Color.red, lineWidth: 1.5))
+                if !isWorkoutActive {
+                    bottomPanel
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 18)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 18)
-                .padding(.bottom, 32)
             }
         }
+        .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isWorkoutActive)
         .onAppear {
             camera.start()
         }
@@ -53,20 +63,49 @@ struct CameraFeedbackView: View {
         }
     }
 
-    private var liveBadge: some View {
-        HStack(spacing: 9) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 10, height: 10)
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 9, height: 9)
 
-            Text("LIVE - \(camera.selectedMove.liveTitle)")
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundColor(.white)
+                Text(camera.selectedMove.liveTitle)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .background(Color.black.opacity(0.42))
+            .clipShape(Capsule())
+
+            Spacer()
+
+            Button(action: camera.resetCounter) {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 14)
+                    .frame(height: 38)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+            }
+
+            if isWorkoutActive {
+                Button(action: {
+                    isWorkoutActive = false
+                }) {
+                    Label("Controls", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundColor(CameraFeedbackStyle.ink)
+                        .padding(.horizontal, 14)
+                        .frame(height: 38)
+                        .background(Color.white)
+                        .clipShape(Capsule())
+                }
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 13)
-        .background(Color.black.opacity(0.45))
-        .clipShape(Capsule())
     }
 
     private var cameraStage: some View {
@@ -77,9 +116,7 @@ struct CameraFeedbackView: View {
             switch camera.authorizationStatus {
             case .authorized:
                 CameraPreview(session: camera.session, joints: camera.joints)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 24)
+                    .edgesIgnoringSafeArea(.all)
             case .denied, .restricted:
                 CameraUnavailableView(message: "Camera not available")
             case .notDetermined:
@@ -92,7 +129,7 @@ struct CameraFeedbackView: View {
     }
 
     private var bottomPanel: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             Picker("Workout", selection: $camera.selectedMove) {
                 ForEach(WorkoutMove.allCases) { move in
                     Text(move.shortTitle).tag(move)
@@ -100,33 +137,32 @@ struct CameraFeedbackView: View {
             }
             .pickerStyle(.segmented)
 
-            HStack(alignment: .bottom) {
+            HStack(alignment: .center, spacing: 14) {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("REPS")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 12, weight: .heavy))
                         .foregroundColor(CameraFeedbackStyle.muted)
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("\(camera.repCount)")
-                            .font(.system(size: 54, weight: .heavy))
+                            .font(.system(size: 40, weight: .heavy))
                             .foregroundColor(CameraFeedbackStyle.ink)
                         Text("/\(camera.selectedMove.targetReps)")
-                            .font(.system(size: 24, weight: .heavy))
+                            .font(.system(size: 18, weight: .heavy))
                             .foregroundColor(CameraFeedbackStyle.muted)
                     }
                 }
 
-                Spacer()
-
                 Label(camera.feedbackMessage,
                       systemImage: camera.hasGoodForm ? "checkmark.circle" : "exclamationmark.circle")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(camera.hasGoodForm ? Color.green : Color.orange)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
                     .background((camera.hasGoodForm ? Color.green : Color.orange).opacity(0.10))
-                    .clipShape(Capsule())
-                    .padding(.bottom, 14)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
 
             ProgressBar(value: camera.progress, height: 6)
@@ -136,11 +172,59 @@ struct CameraFeedbackView: View {
                 DebugPill(title: "Pose", value: String(format: "%.0f%%", camera.poseQuality * 100))
                 DebugPill(title: "ms", value: String(format: "%.1f", camera.processingMs))
             }
+
+            Button(action: {
+                isWorkoutActive = true
+            }) {
+                Label("Start Workout", systemImage: "play.fill")
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(CameraFeedbackStyle.ink)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
         }
-        .padding(26)
+        .padding(14)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .padding(.horizontal, 24)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.horizontal, 12)
+    }
+
+    private var compactRepsHUD: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(camera.selectedMove.shortTitle.uppercased())
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(0.75))
+
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text("\(camera.repCount)")
+                    .font(.system(size: 46, weight: .heavy))
+                    .foregroundColor(.white)
+
+                Text("/\(camera.selectedMove.targetReps)")
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.72))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.black.opacity(0.42))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var activeFeedbackBar: some View {
+        Label(camera.feedbackMessage,
+              systemImage: camera.hasGoodForm ? "checkmark.circle" : "exclamationmark.circle")
+            .font(.system(size: 13, weight: .heavy))
+            .foregroundColor(camera.hasGoodForm ? .green : .orange)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background(Color.black.opacity(0.48))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

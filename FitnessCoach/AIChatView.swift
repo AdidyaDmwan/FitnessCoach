@@ -13,6 +13,9 @@ final class AIChatViewModel: ObservableObject {
     @Published var isSending = false
     @Published var errorMessage: String?
 
+    private let remoteClient = RemoteFitnessChatClient()
+    private let localCoach = LocalFitnessCoach()
+
     init() {
         messages = [
             ChatMessage(
@@ -38,35 +41,15 @@ final class AIChatViewModel: ObservableObject {
         isSending = true
         defer { isSending = false }
 
-        guard let url = URL(string: "http://localhost:5001/api/chat") else {
-            appendAIReply("Unable to create request URL.")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let payload = ["message": text]
         do {
-            request.httpBody = try JSONEncoder().encode(payload)
-        } catch {
-            appendAIReply("Failed to encode chat message.")
-            return
-        }
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200..<300).contains(httpResponse.statusCode) else {
-                throw URLError(.badServerResponse)
+            if let response = try await remoteClient.send(message: text) {
+                appendAIReply(response)
+            } else {
+                appendAIReply(localCoach.reply(to: text))
             }
-
-            let apiResponse = try JSONDecoder().decode(ChatAPIResponse.self, from: data)
-            appendAIReply(apiResponse.response)
         } catch {
-            errorMessage = "Unable to reach AI server."
-            appendAIReply("I couldn't reach the AI server. Please try again later.")
+            errorMessage = "Using offline coach."
+            appendAIReply(localCoach.reply(to: text))
         }
     }
 
@@ -75,8 +58,95 @@ final class AIChatViewModel: ObservableObject {
         messages.append(aiMessage)
     }
 
+}
+
+private struct RemoteFitnessChatClient {
+    private var serverURL: URL? {
+        let environmentValue = ProcessInfo.processInfo.environment["AI_CHAT_SERVER_URL"]
+        let plistValue = Bundle.main.object(forInfoDictionaryKey: "AIChatServerURL") as? String
+        let configuredValue = environmentValue ?? plistValue ?? ""
+        let trimmedConfiguredValue = configuredValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawValue = trimmedConfiguredValue.isEmpty || trimmedConfiguredValue.contains("$(")
+            ? defaultServerURLString
+            : trimmedConfiguredValue
+
+        return URL(string: rawValue)
+    }
+
+    private var defaultServerURLString: String {
+        #if targetEnvironment(simulator)
+        return "http://localhost:5001"
+        #else
+        return ""
+        #endif
+    }
+
+    func send(message: String) async throws -> String? {
+        guard let serverURL = serverURL else {
+            return nil
+        }
+
+        let url = serverURL.appendingPathComponent("api/chat")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["message": message])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(ChatAPIResponse.self, from: data).response
+    }
+
     private struct ChatAPIResponse: Decodable {
         let response: String
+    }
+}
+
+private struct LocalFitnessCoach {
+    func reply(to message: String) -> String {
+        let text = message.lowercased()
+
+        if containsAny(text, ["squat", "jongkok"]) {
+            return "For squats: stand with feet shoulder-width apart, push your hips back, keep your chest up, and lower until your knees bend deeply. If the camera says “Go a little lower,” reduce depth slowly and keep your knees tracking over your toes."
+        }
+
+        if containsAny(text, ["push", "pushup", "push up"]) {
+            return "For push-ups: keep a straight line from shoulders to ankles, lower until elbows bend clearly, then press until arms extend. Use a side camera angle so shoulders, elbows, and wrists are visible."
+        }
+
+        if containsAny(text, ["sit up", "situp", "abs", "core"]) {
+            return "For sit-ups: start lying back, brace your core, curl shoulders toward hips, then return with control. Put the phone on the side so the camera can see shoulders and hips."
+        }
+
+        if containsAny(text, ["jumping", "jump", "cardio"]) {
+            return "For jumping jacks: open arms and feet together, then close them together. Keep your full body in frame so the camera can track wrists and ankles."
+        }
+
+        if containsAny(text, ["calorie", "kalori", "fat", "weight loss", "turun berat"]) {
+            return "For fat loss, combine a small calorie deficit, 2-4 strength sessions per week, daily walking, and enough protein. Avoid extreme deficits because they make workouts harder and recovery worse."
+        }
+
+        if containsAny(text, ["protein", "makan", "nutrition", "nutrisi"]) {
+            return "A simple nutrition target: include protein in each meal, add vegetables or fruit, drink enough water, and keep portions consistent. For training days, eat carbs before or after workouts for energy."
+        }
+
+        if containsAny(text, ["pain", "sakit", "injury", "cedera"]) {
+            return "If you feel sharp pain, numbness, dizziness, or joint pain, stop the exercise. I can give general form tips, but for injury or medical concerns you should ask a qualified professional."
+        }
+
+        if containsAny(text, ["workout", "latihan", "program", "plan"]) {
+            return "A balanced home workout: 3 rounds of squats, push-ups, sit-ups, and jumping jacks. Rest 45-90 seconds between rounds. Start with clean form before increasing reps."
+        }
+
+        return "I can help with workout form, reps, nutrition, calories, and training plans. Tell me which exercise you are doing and what feels difficult, then I’ll give specific coaching tips."
+    }
+
+    private func containsAny(_ text: String, _ keywords: [String]) -> Bool {
+        keywords.contains { text.contains($0) }
     }
 }
 

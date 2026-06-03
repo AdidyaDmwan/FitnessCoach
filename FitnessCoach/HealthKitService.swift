@@ -19,18 +19,43 @@ enum HealthConnectionState: String {
 
 final class HealthKitService: ObservableObject {
     private let healthStore = HKHealthStore()
-        @Published var healthSampleData: HealthSampleData?
-        @Published var errorMessage: String?
+    @Published var healthSampleData: HealthSampleData?
+    @Published var errorMessage: String?
     
         func sendToBackend() {
             // Implementation for sending data to backend
         }
     
-        func mockFallback() {
-            // Mock fallback implementation
-            healthSampleData = HealthSampleData(steps: 1000, activeCalories: 200, restingCalories: 1500, heartRate: 70)
-            errorMessage = nil
+    @MainActor
+    func mockFallback() {
+        // Mock fallback implementation
+        healthSampleData = HealthSampleData(steps: 1000, activeCalories: 200, restingCalories: 1500, heartRate: 70)
+        errorMessage = nil
+    }
+
+    func connectOnLaunch() async {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            await MainActor.run {
+                errorMessage = "Apple Health tidak tersedia di perangkat ini."
+            }
+            return
         }
+
+        await requestPermissionIfNeeded()
+        let todaySamples = await fetchTodaySamples()
+
+        await MainActor.run {
+            healthSampleData = todaySamples
+
+            if todaySamples == nil {
+                errorMessage = connectionState == .denied
+                    ? "Apple Health permission ditolak."
+                    : "Belum ada data Apple Health untuk hari ini."
+            } else {
+                errorMessage = nil
+            }
+        }
+    }
 
     var connectionState: HealthConnectionState {
         guard HKHealthStore.isHealthDataAvailable(),

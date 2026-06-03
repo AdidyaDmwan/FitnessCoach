@@ -197,7 +197,7 @@ final class FitnessA2AClient {
             params: A2ARequestParams(agent: "AppleHealthAgent", task: "fetchDashboardMetrics")
         )
 
-        if let healthData = await healthKitService.fetchTodaySamples(), healthData.activeCalories > 0 {
+        if let healthData = await healthKitService.fetchTodaySamples() {
             let totalCalories = max(healthData.activeCalories + healthData.restingCalories, healthData.activeCalories)
             return makeSnapshot(
                 request: request,

@@ -464,6 +464,8 @@
 				DEVELOPMENT_TEAM = CT956VYJQ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_AIChatServerURL = "";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessCoach needs camera access to detect your workout pose.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessCoach uses Apple Health to read activity and calorie data for your dashboard.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessCoach can prepare HealthKit workout features when you enable them.";
@@ -498,6 +500,8 @@
 				DEVELOPMENT_TEAM = CT956VYJQ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_AIChatServerURL = "";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessCoach needs camera access to detect your workout pose.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessCoach uses Apple Health to read activity and calorie data for your dashboard.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessCoach can prepare HealthKit workout features when you enable them.";
