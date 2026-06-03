@@ -1,0 +1,18 @@
+{
+  "jsonrpc": "2.0",
+  "id": "task-health-001",
+  "result": {
+    "agent": "AppleHealthAgent",
+    "task": "fetchCalorieData",
+    "status": "completed",
+    "artifact": {
+      "date": "2025-05-14",
+      "calories": {
+        "active": 450,
+        "resting": 1800,
+        "total": 2250,
+        "unit": "kcal"
+      }
+    }
+  }
+}

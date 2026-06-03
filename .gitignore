@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Xcode build artifacts
+DerivedData/
+build/
+*.xcuserstate
+*.moved-aside

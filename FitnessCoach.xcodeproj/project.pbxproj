@@ -14,6 +14,15 @@
 		13100FFD2FB47B0E00CF8817 /* FitnessCoachTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13100FFC2FB47B0E00CF8817 /* FitnessCoachTests.swift */; };
 		131010072FB47B0E00CF8817 /* FitnessCoachUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131010062FB47B0E00CF8817 /* FitnessCoachUITests.swift */; };
 		131010092FB47B0E00CF8817 /* FitnessCoachUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131010082FB47B0E00CF8817 /* FitnessCoachUITestsLaunchTests.swift */; };
+		13A2A0012FB6000000CF8817 /* A2AService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0002FB6000000CF8817 /* A2AService.swift */; };
+		13A2A0032FB6000000CF8817 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0022FB6000000CF8817 /* HealthKitService.swift */; };
+		13A2A0052FB6000000CF8817 /* CalorieA2AView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0042FB6000000CF8817 /* CalorieA2AView.swift */; };
+		13A2A0072FB6000000CF8817 /* mock_a2a_response.json in Resources */ = {isa = PBXBuildFile; fileRef = 13A2A0062FB6000000CF8817 /* mock_a2a_response.json */; };
+		13A2A00A2FB6000000CF8817 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0092FB6000000CF8817 /* DashboardView.swift */; };
+		13A2A00C2FB6000000CF8817 /* HealthKitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00B2FB6000000CF8817 /* HealthKitServiceTests.swift */; };
+		13A2A00E2FB6000000CF8817 /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00D2FB6000000CF8817 /* AIChatView.swift */; };
+		13A2A0102FB7000000CF8817 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00F2FB7000000CF8817 /* CameraView.swift */; };
+		13A2A0142FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +53,16 @@
 		131010022FB47B0E00CF8817 /* FitnessCoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FitnessCoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		131010062FB47B0E00CF8817 /* FitnessCoachUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessCoachUITests.swift; sourceTree = "<group>"; };
 		131010082FB47B0E00CF8817 /* FitnessCoachUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessCoachUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		13A2A0002FB6000000CF8817 /* A2AService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = A2AService.swift; sourceTree = "<group>"; };
+		13A2A0022FB6000000CF8817 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		13A2A0042FB6000000CF8817 /* CalorieA2AView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieA2AView.swift; sourceTree = "<group>"; };
+		13A2A0062FB6000000CF8817 /* mock_a2a_response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mock_a2a_response.json; sourceTree = "<group>"; };
+		13A2A0082FB6000000CF8817 /* FitnessCoach.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FitnessCoach.entitlements; sourceTree = "<group>"; };
+		13A2A0092FB6000000CF8817 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		13A2A00B2FB6000000CF8817 /* HealthKitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceTests.swift; sourceTree = "<group>"; };
+		13A2A00D2FB6000000CF8817 /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
+		13A2A00F2FB7000000CF8817 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = PoseNetMobileNet075S16FP16.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +115,15 @@
 			children = (
 				13100FEB2FB47B0A00CF8817 /* FitnessCoachApp.swift */,
 				13100FED2FB47B0A00CF8817 /* ContentView.swift */,
+				13A2A00F2FB7000000CF8817 /* CameraView.swift */,
+				13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */,
+				13A2A0002FB6000000CF8817 /* A2AService.swift */,
+				13A2A0022FB6000000CF8817 /* HealthKitService.swift */,
+				13A2A0042FB6000000CF8817 /* CalorieA2AView.swift */,
+				13A2A00D2FB6000000CF8817 /* AIChatView.swift */,
+				13A2A0092FB6000000CF8817 /* DashboardView.swift */,
+				13A2A0062FB6000000CF8817 /* mock_a2a_response.json */,
+				13A2A0082FB6000000CF8817 /* FitnessCoach.entitlements */,
 				13100FEF2FB47B0D00CF8817 /* Assets.xcassets */,
 				13100FF12FB47B0D00CF8817 /* Preview Content */,
 			);
@@ -114,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				13100FFC2FB47B0E00CF8817 /* FitnessCoachTests.swift */,
+				13A2A00B2FB6000000CF8817 /* HealthKitServiceTests.swift */,
 			);
 			path = FitnessCoachTests;
 			sourceTree = "<group>";
@@ -195,6 +224,11 @@
 				TargetAttributes = {
 					13100FE72FB47B0A00CF8817 = {
 						CreatedOnToolsVersion = 14.3.1;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
 					};
 					13100FF72FB47B0E00CF8817 = {
 						CreatedOnToolsVersion = 14.3.1;
@@ -231,6 +265,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				13A2A0072FB6000000CF8817 /* mock_a2a_response.json in Resources */,
 				13100FF32FB47B0D00CF8817 /* Preview Assets.xcassets in Resources */,
 				13100FF02FB47B0D00CF8817 /* Assets.xcassets in Resources */,
 			);
@@ -257,6 +292,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				13A2A0012FB6000000CF8817 /* A2AService.swift in Sources */,
+				13A2A0032FB6000000CF8817 /* HealthKitService.swift in Sources */,
+				13A2A0052FB6000000CF8817 /* CalorieA2AView.swift in Sources */,
+				13A2A00E2FB6000000CF8817 /* AIChatView.swift in Sources */,
+				13A2A00A2FB6000000CF8817 /* DashboardView.swift in Sources */,
+				13A2A0102FB7000000CF8817 /* CameraView.swift in Sources */,
+				13A2A0142FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel in Sources */,
 				13100FEE2FB47B0A00CF8817 /* ContentView.swift in Sources */,
 				13100FEC2FB47B0A00CF8817 /* FitnessCoachApp.swift in Sources */,
 			);
@@ -267,6 +309,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				13100FFD2FB47B0E00CF8817 /* FitnessCoachTests.swift in Sources */,
+				13A2A00C2FB6000000CF8817 /* HealthKitServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -414,11 +457,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FitnessCoach/FitnessCoach.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"FitnessCoach/Preview Content\"";
+				DEVELOPMENT_TEAM = CT956VYJQ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessCoach needs camera access to detect your workout pose.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessCoach uses Apple Health to read activity and calorie data for your dashboard.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessCoach can prepare HealthKit workout features when you enable them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,6 +477,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = AD.FitnessCoach;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -442,11 +491,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FitnessCoach/FitnessCoach.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"FitnessCoach/Preview Content\"";
+				DEVELOPMENT_TEAM = CT956VYJQ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessCoach needs camera access to detect your workout pose.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessCoach uses Apple Health to read activity and calorie data for your dashboard.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessCoach can prepare HealthKit workout features when you enable them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -457,6 +511,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = AD.FitnessCoach;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
