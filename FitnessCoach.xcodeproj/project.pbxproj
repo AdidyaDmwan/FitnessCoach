@@ -22,7 +22,7 @@
 		13A2A00C2FB6000000CF8817 /* HealthKitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00B2FB6000000CF8817 /* HealthKitServiceTests.swift */; };
 		13A2A00E2FB6000000CF8817 /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00D2FB6000000CF8817 /* AIChatView.swift */; };
 		13A2A0102FB7000000CF8817 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A00F2FB7000000CF8817 /* CameraView.swift */; };
-		13A2A0142FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */; };
+		13A2A0122FB8000000CF8817 /* WorkoutTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A2A0112FB8000000CF8817 /* WorkoutTracking.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,7 +62,7 @@
 		13A2A00B2FB6000000CF8817 /* HealthKitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceTests.swift; sourceTree = "<group>"; };
 		13A2A00D2FB6000000CF8817 /* AIChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatView.swift; sourceTree = "<group>"; };
 		13A2A00F2FB7000000CF8817 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
-		13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = PoseNetMobileNet075S16FP16.mlmodel; sourceTree = "<group>"; };
+		13A2A0112FB8000000CF8817 /* WorkoutTracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTracking.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,7 +116,7 @@
 				13100FEB2FB47B0A00CF8817 /* FitnessCoachApp.swift */,
 				13100FED2FB47B0A00CF8817 /* ContentView.swift */,
 				13A2A00F2FB7000000CF8817 /* CameraView.swift */,
-				13A2A0132FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel */,
+				13A2A0112FB8000000CF8817 /* WorkoutTracking.swift */,
 				13A2A0002FB6000000CF8817 /* A2AService.swift */,
 				13A2A0022FB6000000CF8817 /* HealthKitService.swift */,
 				13A2A0042FB6000000CF8817 /* CalorieA2AView.swift */,
@@ -298,7 +298,7 @@
 				13A2A00E2FB6000000CF8817 /* AIChatView.swift in Sources */,
 				13A2A00A2FB6000000CF8817 /* DashboardView.swift in Sources */,
 				13A2A0102FB7000000CF8817 /* CameraView.swift in Sources */,
-				13A2A0142FB9000000CF8817 /* PoseNetMobileNet075S16FP16.mlmodel in Sources */,
+				13A2A0122FB8000000CF8817 /* WorkoutTracking.swift in Sources */,
 				13100FEE2FB47B0A00CF8817 /* ContentView.swift in Sources */,
 				13100FEC2FB47B0A00CF8817 /* FitnessCoachApp.swift in Sources */,
 			);

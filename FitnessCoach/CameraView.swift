@@ -4,9 +4,17 @@ import CoreML
 import UIKit
 import Vision
 
+enum WorkoutState {
+    case setup
+    case calibrating
+    case active
+}
+
 struct CameraFeedbackView: View {
     @StateObject private var camera: PoseCameraController
-    @State private var isWorkoutActive = false
+    @StateObject private var historyStore = WorkoutHistoryStore()
+    @State private var workoutState: WorkoutState = .setup
+    @State private var didSaveCurrentSession = false
 
     init(selectedMove: WorkoutMove = .squat) {
         _camera = StateObject(wrappedValue: PoseCameraController(selectedMove: selectedMove))
@@ -24,42 +32,89 @@ struct CameraFeedbackView: View {
             )
             .edgesIgnoringSafeArea(.all)
 
-            VStack(spacing: 0) {
-                cameraStage
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay(alignment: .top) {
-                        topBar
-                            .padding(.horizontal, 16)
-                            .padding(.top, 50)
+            cameraStage
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .top) {
+                    topBar
+                        .padding(.horizontal, 16)
+                        .padding(.top, 50)
+                }
+                .overlay(alignment: .topLeading) {
+                    if workoutState == .active {
+                        compactRepsHUD
+                            .padding(.leading, 16)
+                            .padding(.top, 102)
                     }
-                    .overlay(alignment: .topLeading) {
-                        if isWorkoutActive {
-                            compactRepsHUD
-                                .padding(.leading, 16)
-                                .padding(.top, 102)
+                }
+                .overlay(alignment: .topTrailing) {
+                    if workoutState == .active {
+                        liveMetricPanel
+                            .padding(.trailing, 16)
+                            .padding(.top, 102)
+                    }
+                }
+                .overlay(alignment: .center) {
+                    if workoutState == .calibrating {
+                        VStack(spacing: 18) {
+                            Text("Calibration")
+                                .font(.system(size: 20, weight: .heavy))
+                                .foregroundColor(.white)
+                            
+                            Text("Stand in frame so all required\njoints are visible.")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                            
+                            ProgressBar(value: camera.calibrationProgress, height: 8)
+                                .frame(width: 180)
+                            
+                            if camera.calibrationProgress >= 1.0 {
+                                Text("Ready!")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.green)
+                            }
                         }
+                        .padding(24)
+                        .background(Color.black.opacity(0.7))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
-                    .overlay(alignment: .bottom) {
-                        if isWorkoutActive {
+                }
+                .overlay(alignment: .bottom) {
+                    VStack(spacing: 0) {
+                        if workoutState == .active {
                             activeFeedbackBar
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 18)
+                        } else if workoutState == .setup {
+                            bottomPanel
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .padding(.bottom, 18)
                         }
                     }
-
-                if !isWorkoutActive {
-                    bottomPanel
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .padding(.bottom, 18)
                 }
-            }
         }
-        .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isWorkoutActive)
+        .animation(.spring(response: 0.34, dampingFraction: 0.86), value: workoutState)
         .onAppear {
             camera.start()
         }
         .onDisappear {
             camera.stop()
+        }
+        .onChange(of: camera.calibrationProgress) { progress in
+            if workoutState == .calibrating && progress >= 1.0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    if workoutState == .calibrating {
+                        camera.beginWorkout()
+                        didSaveCurrentSession = false
+                        withAnimation { workoutState = .active }
+                    }
+                }
+            }
+        }
+        .onChange(of: camera.repCount) { reps in
+            if workoutState == .active && reps >= camera.selectedMove.targetReps {
+                finishAndSaveWorkout()
+            }
         }
     }
 
@@ -92,11 +147,11 @@ struct CameraFeedbackView: View {
                     .clipShape(Capsule())
             }
 
-            if isWorkoutActive {
+            if workoutState != .setup {
                 Button(action: {
-                    isWorkoutActive = false
+                    finishAndSaveWorkout()
                 }) {
-                    Label("Controls", systemImage: "slider.horizontal.3")
+                    Label("Stop", systemImage: "xmark")
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundColor(CameraFeedbackStyle.ink)
                         .padding(.horizontal, 14)
@@ -115,7 +170,7 @@ struct CameraFeedbackView: View {
             #else
             switch camera.authorizationStatus {
             case .authorized:
-                CameraPreview(session: camera.session, joints: camera.joints)
+                CameraPreview(session: camera.session, joints: camera.joints, hasGoodForm: camera.hasGoodForm)
                     .edgesIgnoringSafeArea(.all)
             case .denied, .restricted:
                 CameraUnavailableView(message: "Camera not available")
@@ -136,81 +191,129 @@ struct CameraFeedbackView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .colorMultiply(.fcAccent)
 
             HStack(alignment: .center, spacing: 14) {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("REPS")
                         .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(CameraFeedbackStyle.muted)
+                        .foregroundColor(.white.opacity(0.7))
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("\(camera.repCount)")
-                            .font(.system(size: 40, weight: .heavy))
-                            .foregroundColor(CameraFeedbackStyle.ink)
+                            .font(.system(size: 44, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
                         Text("/\(camera.selectedMove.targetReps)")
-                            .font(.system(size: 18, weight: .heavy))
-                            .foregroundColor(CameraFeedbackStyle.muted)
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.7))
                     }
                 }
 
+                Spacer()
+
                 Label(camera.feedbackMessage,
-                      systemImage: camera.hasGoodForm ? "checkmark.circle" : "exclamationmark.circle")
-                    .font(.system(size: 12, weight: .bold))
+                      systemImage: camera.hasGoodForm ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(camera.hasGoodForm ? Color.green : Color.orange)
                     .lineLimit(2)
                     .minimumScaleFactor(0.78)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                     .background((camera.hasGoodForm ? Color.green : Color.orange).opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
-            ProgressBar(value: camera.progress, height: 6)
-
-            HStack(spacing: 10) {
-                DebugPill(title: "FPS", value: String(format: "%.0f", camera.fps))
-                DebugPill(title: "Pose", value: String(format: "%.0f%%", camera.poseQuality * 100))
-                DebugPill(title: "ms", value: String(format: "%.1f", camera.processingMs))
-            }
+            ProgressBar(value: camera.progress, height: 8)
 
             Button(action: {
-                isWorkoutActive = true
+                camera.resetCounter()
+                didSaveCurrentSession = false
+                workoutState = .calibrating
             }) {
                 Label("Start Workout", systemImage: "play.fill")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(CameraFeedbackStyle.ink)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frame(height: 56)
+                    .background(LinearGradient(colors: [CameraFeedbackStyle.accent, CameraFeedbackStyle.ink], startPoint: .leading, endPoint: .trailing))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: CameraFeedbackStyle.accent.opacity(0.4), radius: 14, x: 0, y: 6)
             }
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(20)
+        .background(.ultraThinMaterial)
+        .environment(\.colorScheme, .dark)
+        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 12)
         .padding(.horizontal, 12)
     }
 
     private var compactRepsHUD: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(camera.selectedMove.shortTitle.uppercased())
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.75))
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(camera.selectedMove.shortTitle.uppercased())
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.75))
 
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(camera.repCount)")
-                    .font(.system(size: 46, weight: .heavy))
-                    .foregroundColor(.white)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(camera.repCount)")
+                        .font(.system(size: 46, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
 
-                Text("/\(camera.selectedMove.targetReps)")
-                    .font(.system(size: 18, weight: .heavy))
-                    .foregroundColor(.white.opacity(0.72))
+                    Text("/\(camera.selectedMove.targetReps)")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.72))
+                }
+            }
+
+            VStack(spacing: 8) {
+                Button(action: camera.increaseRepCount) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(Circle())
+                }
+
+                Button(action: camera.decreaseRepCount) {
+                    Image(systemName: "minus")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(Circle())
+                }
+            }
+            
+            Divider()
+                .background(Color.white.opacity(0.3))
+                .frame(height: 40)
+            
+            VStack(alignment: .leading, spacing: 5) {
+                Text("SCORE")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.75))
+                
+                Text("\(camera.averageScore)")
+                    .font(.system(size: 36, weight: .heavy, design: .rounded))
+                    .foregroundColor(scoreColor(camera.averageScore))
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 18)
         .padding(.vertical, 12)
-        .background(Color.black.opacity(0.42))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.ultraThinMaterial)
+        .environment(\.colorScheme, .dark)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.2), radius: 16, x: 0, y: 8)
+    }
+
+    private var liveMetricPanel: some View {
+        VStack(alignment: .trailing, spacing: 9) {
+            DebugPill(title: camera.metricTitle, value: camera.metricValueText)
+            DebugPill(title: "Form", value: camera.correctionTip)
+        }
+        .frame(maxWidth: 178, alignment: .trailing)
     }
 
     private var activeFeedbackBar: some View {
@@ -226,11 +329,35 @@ struct CameraFeedbackView: View {
             .background(Color.black.opacity(0.48))
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
+
+    private func scoreColor(_ score: Int) -> Color {
+        if score >= 90 { return .green }
+        if score >= 70 { return .yellow }
+        if score > 0 { return .orange }
+        return .white
+    }
+
+    private func finishAndSaveWorkout() {
+        guard !didSaveCurrentSession else {
+            workoutState = .setup
+            camera.resetCounter()
+            return
+        }
+
+        if let record = camera.finishWorkout() {
+            historyStore.add(record)
+        }
+
+        didSaveCurrentSession = true
+        workoutState = .setup
+        camera.resetCounter()
+    }
 }
 
 private struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     let joints: [PoseJoint: CGPoint]
+    let hasGoodForm: Bool
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
@@ -245,7 +372,7 @@ private struct CameraPreview: UIViewRepresentable {
         uiView.previewLayer.session = session
         uiView.previewLayer.connection?.videoOrientation = .portrait
         uiView.previewLayer.connection?.isVideoMirrored = true
-        uiView.updateSkeleton(joints: joints)
+        uiView.updateSkeleton(joints: joints, hasGoodForm: hasGoodForm)
     }
 }
 
@@ -276,9 +403,10 @@ private final class PreviewView: UIView {
         skeletonView.previewLayer = previewLayer
     }
 
-    func updateSkeleton(joints: [PoseJoint: CGPoint]) {
+    func updateSkeleton(joints: [PoseJoint: CGPoint], hasGoodForm: Bool) {
         skeletonView.previewLayer = previewLayer
         skeletonView.joints = joints
+        skeletonView.hasGoodForm = hasGoodForm
     }
 
     private func commonInit() {
@@ -290,6 +418,9 @@ private final class PreviewView: UIView {
 
 private final class SkeletonOverlayUIView: UIView {
     weak var previewLayer: AVCaptureVideoPreviewLayer?
+    var hasGoodForm: Bool = true {
+        didSet { setNeedsDisplay() }
+    }
     var joints: [PoseJoint: CGPoint] = [:] {
         didSet {
             setNeedsDisplay()
@@ -304,8 +435,12 @@ private final class SkeletonOverlayUIView: UIView {
         context.setLineCap(.round)
         context.setLineJoin(.round)
         context.setLineWidth(4)
-        context.setStrokeColor(UIColor(red: 0.52, green: 1.0, blue: 0.26, alpha: 0.95).cgColor)
-        context.setFillColor(UIColor(red: 0.52, green: 1.0, blue: 0.26, alpha: 0.95).cgColor)
+
+        let goodColor = UIColor(red: 0.52, green: 1.0, blue: 0.26, alpha: 0.95).cgColor
+        let badColor = UIColor(red: 1.0, green: 0.3, blue: 0.26, alpha: 0.95).cgColor
+        let color = hasGoodForm ? goodColor : badColor
+        context.setStrokeColor(color)
+        context.setFillColor(color)
 
         for connection in PoseJoint.connections {
             guard let start = joints[connection.0], let end = joints[connection.1] else {
@@ -370,7 +505,7 @@ private struct ProgressBar: View {
                     .fill(CameraFeedbackStyle.line)
 
                 Capsule()
-                    .fill(CameraFeedbackStyle.ink)
+                    .fill(LinearGradient(colors: [CameraFeedbackStyle.accent, CameraFeedbackStyle.ink], startPoint: .leading, endPoint: .trailing))
                     .frame(width: max(0, min(value, 1)) * geometry.size.width)
             }
         }
@@ -398,12 +533,13 @@ private struct DebugPill: View {
 }
 
 private enum CameraFeedbackStyle {
-    static let ink = Color(red: 0.055, green: 0.055, blue: 0.055)
-    static let muted = Color(red: 0.43, green: 0.43, blue: 0.43)
-    static let line = Color(red: 0.88, green: 0.88, blue: 0.88)
+    static let ink = Color(red: 0.08, green: 0.15, blue: 0.28)
+    static let accent = Color(red: 0.15, green: 0.45, blue: 1.0)
+    static let muted = Color(red: 0.45, green: 0.50, blue: 0.58)
+    static let line = Color(red: 0.90, green: 0.92, blue: 0.96)
 }
 
-enum WorkoutMove: String, CaseIterable, Identifiable {
+enum WorkoutMove: String, CaseIterable, Identifiable, Codable {
     case squat
     case sitUp
     case pushUp
@@ -443,6 +579,34 @@ enum WorkoutMove: String, CaseIterable, Identifiable {
             return 15
         case .jumpingJack:
             return 30
+        }
+    }
+
+    var metricTitle: String {
+        switch self {
+        case .squat:
+            return "Knee"
+        case .sitUp:
+            return "Torso"
+        case .pushUp:
+            return "Elbow"
+        case .jumpingJack:
+            return "Spread"
+        }
+    }
+}
+
+extension WorkoutMove {
+    fileprivate var requiredJoints: [PoseJoint] {
+        switch self {
+        case .squat:
+            return [.leftHip, .rightHip, .leftKnee, .rightKnee, .leftAnkle, .rightAnkle]
+        case .sitUp:
+            return [.leftShoulder, .rightShoulder, .leftHip, .rightHip]
+        case .pushUp:
+            return [.leftShoulder, .rightShoulder, .leftElbow, .rightElbow, .leftWrist, .rightWrist]
+        case .jumpingJack:
+            return [.leftWrist, .rightWrist, .leftAnkle, .rightAnkle]
         }
     }
 }
@@ -586,53 +750,30 @@ private enum PoseJoint: Hashable {
     }
 }
 
-private enum PoseNetKeypoint: Int {
-    case leftShoulder = 5
-    case rightShoulder = 6
-    case leftElbow = 7
-    case rightElbow = 8
-    case leftWrist = 9
-    case rightWrist = 10
-    case leftHip = 11
-    case rightHip = 12
-    case leftKnee = 13
-    case rightKnee = 14
-    case leftAnkle = 15
-    case rightAnkle = 16
-
-    var poseJoint: PoseJoint {
-        switch self {
-        case .leftShoulder:
-            return .leftShoulder
-        case .rightShoulder:
-            return .rightShoulder
-        case .leftElbow:
-            return .leftElbow
-        case .rightElbow:
-            return .rightElbow
-        case .leftWrist:
-            return .leftWrist
-        case .rightWrist:
-            return .rightWrist
-        case .leftHip:
-            return .leftHip
-        case .rightHip:
-            return .rightHip
-        case .leftKnee:
-            return .leftKnee
-        case .rightKnee:
-            return .rightKnee
-        case .leftAnkle:
-            return .leftAnkle
-        case .rightAnkle:
-            return .rightAnkle
-        }
-    }
-}
-
 private enum RepPhase {
     case ready
     case loaded
+}
+
+private struct MovementAnalysis {
+    let didCountRep: Bool
+    let message: String
+    let score: Int?
+    let metricTitle: String
+    let metricValue: Double?
+    let metricUnit: String
+
+    var metricText: String {
+        guard let metricValue = metricValue else {
+            return "--"
+        }
+
+        if metricUnit == "deg" {
+            return "\(Int(metricValue.rounded())) deg"
+        }
+
+        return "\(Int(metricValue.rounded()))\(metricUnit)"
+    }
 }
 
 private final class PoseCameraController: NSObject, ObservableObject {
@@ -643,6 +784,16 @@ private final class PoseCameraController: NSObject, ObservableObject {
     @Published var fps: Double = 0
     @Published var processingMs: Double = 0
     @Published var poseQuality: Double = 0
+    @Published var calibrationProgress: CGFloat = 0
+    @Published var averageScore: Int = 0
+    @Published var lastScore: Int = 0
+    @Published var metricTitle = "Angle"
+    @Published var metricValueText = "--"
+    @Published var correctionTip = "Find your setup"
+    
+    private var repScores: [Int] = []
+    private var currentRepMetric: CGFloat = 0
+    private var workoutStartedAt: Date?
     @Published var selectedMove: WorkoutMove = .squat {
         didSet {
             resetCounter()
@@ -662,7 +813,7 @@ private final class PoseCameraController: NSObject, ObservableObject {
     private let sessionQueue = DispatchQueue(label: "com.fitnesscoach.camera.session")
     private let videoQueue = DispatchQueue(label: "com.fitnesscoach.camera.video")
     private let sequenceHandler = VNSequenceRequestHandler()
-    private let poseNetModel: VNCoreMLModel?
+    private let bodyPoseRequest = VNDetectHumanBodyPoseRequest()
     private var isConfigured = false
     private var phase: RepPhase = .ready
     private var smoothedJoints: [PoseJoint: CGPoint] = [:]
@@ -670,7 +821,6 @@ private final class PoseCameraController: NSObject, ObservableObject {
 
     init(selectedMove: WorkoutMove = .squat) {
         self.selectedMove = selectedMove
-        self.poseNetModel = Self.makePoseNetModel()
         authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
         super.init()
     }
@@ -680,6 +830,43 @@ private final class PoseCameraController: NSObject, ObservableObject {
         phase = .ready
         smoothedJoints = [:]
         feedbackMessage = "Adjust your position"
+        correctionTip = "Find your setup"
+        repScores = []
+        averageScore = 0
+        lastScore = 0
+        calibrationProgress = 0
+        currentRepMetric = 0
+        metricTitle = selectedMove.metricTitle
+        metricValueText = "--"
+        workoutStartedAt = nil
+    }
+
+    func beginWorkout() {
+        workoutStartedAt = Date()
+    }
+
+    func finishWorkout() -> WorkoutSessionRecord? {
+        guard repCount > 0 else {
+            return nil
+        }
+
+        let startedAt = workoutStartedAt ?? Date()
+        return WorkoutSessionRecord(
+            move: selectedMove,
+            date: Date(),
+            reps: repCount,
+            targetReps: selectedMove.targetReps,
+            duration: max(Date().timeIntervalSince(startedAt), 1),
+            averageScore: averageScore
+        )
+    }
+
+    func increaseRepCount() {
+        repCount += 1
+    }
+
+    func decreaseRepCount() {
+        repCount = max(0, repCount - 1)
     }
 
     func start() {
@@ -788,18 +975,6 @@ private final class PoseCameraController: NSObject, ObservableObject {
         return discoverySession.devices.first(where: { $0.position == .back })
     }
 
-    private static func makePoseNetModel() -> VNCoreMLModel? {
-        do {
-            let configuration = MLModelConfiguration()
-            configuration.computeUnits = .all
-            let coreMLModel = try PoseNetMobileNet075S16FP16(configuration: configuration).model
-            return try VNCoreMLModel(for: coreMLModel)
-        } catch {
-            print("PoseNet model failed to load: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
     @MainActor
     private func publish(joints: [PoseJoint: CGPoint],
                          hasGoodForm: Bool,
@@ -807,20 +982,34 @@ private final class PoseCameraController: NSObject, ObservableObject {
                          message: String,
                          fps: Double,
                          processingMs: Double,
-                         poseQuality: Double) {
+                         poseQuality: Double,
+                         score: Int?,
+                         metricTitle: String,
+                         metricValueText: String,
+                         correctionTip: String) {
         self.joints = joints
         self.hasGoodForm = hasGoodForm
         self.feedbackMessage = message
         self.fps = fps
         self.processingMs = processingMs
         self.poseQuality = poseQuality
+        self.metricTitle = metricTitle
+        self.metricValueText = metricValueText
+        self.correctionTip = correctionTip
+
+        updateCalibration(joints: joints)
 
         if didCountRep {
             repCount += 1
+            if let validScore = score {
+                lastScore = validScore
+                repScores.append(validScore)
+                averageScore = repScores.reduce(0, +) / repScores.count
+            }
         }
     }
 
-    private func analyzeMovement(joints: [PoseJoint: CGPoint]) -> (didCountRep: Bool, message: String) {
+    private func analyzeMovement(joints: [PoseJoint: CGPoint]) -> MovementAnalysis {
         switch selectedMove {
         case .squat:
             return analyzeSquat(joints: joints)
@@ -833,96 +1022,103 @@ private final class PoseCameraController: NSObject, ObservableObject {
         }
     }
 
-    private func analyzeSquat(joints: [PoseJoint: CGPoint]) -> (Bool, String) {
+    private func analyzeSquat(joints: [PoseJoint: CGPoint]) -> MovementAnalysis {
         guard let kneeAngle = averageAngle(
             joints: joints,
             left: (.leftHip, .leftKnee, .leftAnkle),
             right: (.rightHip, .rightKnee, .rightAnkle)
         ) else {
-            return (false, "Show hips, knees, ankles")
+            return analysis(false, "Show hips, knees, ankles", nil, nil)
         }
 
         if kneeAngle < 105 {
-            phase = .loaded
-            return (false, "Depth good - stand tall")
+            if phase == .ready { phase = .loaded; currentRepMetric = kneeAngle }
+            currentRepMetric = min(currentRepMetric, kneeAngle)
+            return analysis(false, "Depth good - stand tall", nil, kneeAngle)
         }
 
         if kneeAngle > 155, phase == .loaded {
             phase = .ready
-            return (true, "Good rep!")
+            let score = max(0, min(100, Int(100 - (currentRepMetric - 75) * 1.5)))
+            return analysis(true, "Good rep!", score, kneeAngle)
         }
 
         if phase == .loaded {
-            return (false, "Keep standing tall")
+            return analysis(false, "Keep standing tall", nil, kneeAngle)
         }
 
         if kneeAngle < 135 {
-            return (false, "Go a little lower")
+            return analysis(false, "Go a little lower", nil, kneeAngle)
         }
 
-        return (false, "Start squat - hips back")
+        return analysis(false, "Start squat - hips back", nil, kneeAngle)
     }
 
-    private func analyzeSitUp(joints: [PoseJoint: CGPoint]) -> (Bool, String) {
+    private func analyzeSitUp(joints: [PoseJoint: CGPoint]) -> MovementAnalysis {
         guard let shoulders = midpoint(joints[.leftShoulder], joints[.rightShoulder]),
               let hips = midpoint(joints[.leftHip], joints[.rightHip]) else {
-            return (false, "Show shoulders and hips")
+            return analysis(false, "Show shoulders and hips", nil, Optional<Double>.none, unit: "%")
         }
 
         let torsoRise = shoulders.y - hips.y
+        let torsoMetric = Double(max(0, torsoRise) * 100)
 
         if torsoRise < 0.16 {
-            phase = .loaded
-            return (false, "Down position - curl up")
+            if phase == .ready { phase = .loaded; currentRepMetric = torsoRise }
+            currentRepMetric = max(currentRepMetric, torsoRise)
+            return analysis(false, "Down position - curl up", nil, torsoMetric, unit: "%")
         }
 
         if torsoRise > 0.34, phase == .loaded {
             phase = .ready
-            return (true, "Good rep!")
+            let score = max(0, min(100, Int(100 - (0.45 - currentRepMetric) * 200)))
+            return analysis(true, "Good rep!", score, torsoMetric, unit: "%")
         }
 
         if phase == .loaded {
-            return (false, "Curl higher")
+            return analysis(false, "Curl higher", nil, torsoMetric, unit: "%")
         }
 
         if torsoRise > 0.26 {
-            return (false, "Control back down")
+            return analysis(false, "Control back down", nil, torsoMetric, unit: "%")
         }
 
-        return (false, "Lie back before next rep")
+        return analysis(false, "Lie back before next rep", nil, torsoMetric, unit: "%")
     }
 
-    private func analyzePushUp(joints: [PoseJoint: CGPoint]) -> (Bool, String) {
+    private func analyzePushUp(joints: [PoseJoint: CGPoint]) -> MovementAnalysis {
         guard let elbowAngle = averageAngle(
             joints: joints,
             left: (.leftShoulder, .leftElbow, .leftWrist),
             right: (.rightShoulder, .rightElbow, .rightWrist)
         ) else {
-            return (false, "Show shoulders, elbows, wrists")
+            return analysis(false, "Show shoulders, elbows, wrists", nil, nil)
         }
 
         if elbowAngle < 95 {
-            phase = .loaded
-            return (false, "Depth good - press up")
+            if phase == .ready { phase = .loaded; currentRepMetric = elbowAngle }
+            currentRepMetric = min(currentRepMetric, elbowAngle)
+            return analysis(false, "Depth good - press up", nil, elbowAngle)
         }
 
         if elbowAngle > 155, phase == .loaded {
             phase = .ready
-            return (true, "Good rep!")
+            let score = max(0, min(100, Int(100 - (currentRepMetric - 75) * 1.5)))
+            return analysis(true, "Good rep!", score, elbowAngle)
         }
 
         if phase == .loaded {
-            return (false, "Press until arms extend")
+            return analysis(false, "Press until arms extend", nil, elbowAngle)
         }
 
         if elbowAngle < 130 {
-            return (false, "Lower a little more")
+            return analysis(false, "Lower a little more", nil, elbowAngle)
         }
 
-        return (false, "Start push up")
+        return analysis(false, "Start push up", nil, elbowAngle)
     }
 
-    private func analyzeJumpingJack(joints: [PoseJoint: CGPoint]) -> (Bool, String) {
+    private func analyzeJumpingJack(joints: [PoseJoint: CGPoint]) -> MovementAnalysis {
         guard let leftWrist = joints[.leftWrist],
               let rightWrist = joints[.rightWrist],
               let leftShoulder = joints[.leftShoulder],
@@ -931,7 +1127,7 @@ private final class PoseCameraController: NSObject, ObservableObject {
               let rightAnkle = joints[.rightAnkle],
               let leftHip = joints[.leftHip],
               let rightHip = joints[.rightHip] else {
-            return (false, "Show full body")
+            return analysis(false, "Show full body", nil, Optional<Double>.none, unit: "%")
         }
 
         let shoulderWidth = abs(leftShoulder.x - rightShoulder.x)
@@ -942,40 +1138,102 @@ private final class PoseCameraController: NSObject, ObservableObject {
         let legsOpen = ankleWidth > max(hipWidth * 1.45, 0.16)
         let openPosition = armsUp && wristWidth > shoulderWidth * 1.35 && legsOpen
         let closedPosition = leftWrist.y < leftShoulder.y && rightWrist.y < rightShoulder.y && ankleWidth < max(hipWidth * 1.25, 0.22)
+        let spreadMetric = Double(ankleWidth * 100)
 
         if openPosition {
-            phase = .loaded
-            return (false, "Open good - close stance")
+            if phase == .ready { phase = .loaded; currentRepMetric = ankleWidth }
+            currentRepMetric = max(currentRepMetric, ankleWidth)
+            return analysis(false, "Open good - close stance", nil, spreadMetric, unit: "%")
         }
 
         if closedPosition, phase == .loaded {
             phase = .ready
-            return (true, "Good rep!")
+            let score = max(0, min(100, Int(100 - (0.40 - currentRepMetric) * 250)))
+            return analysis(true, "Good rep!", score, spreadMetric, unit: "%")
         }
 
         if phase == .loaded {
-            return (false, "Bring hands and feet in")
+            return analysis(false, "Bring hands and feet in", nil, spreadMetric, unit: "%")
         }
 
         if !armsUp && !legsOpen {
-            return (false, "Open arms and feet")
+            return analysis(false, "Open arms and feet", nil, spreadMetric, unit: "%")
         }
 
         if !armsUp {
-            return (false, "Raise both hands higher")
+            return analysis(false, "Raise both hands higher", nil, spreadMetric, unit: "%")
         }
 
         if !legsOpen {
-            return (false, "Step feet wider")
+            return analysis(false, "Step feet wider", nil, spreadMetric, unit: "%")
         }
 
-        return (false, "Keep full body visible")
+        return analysis(false, "Keep full body visible", nil, spreadMetric, unit: "%")
+    }
+
+    private func analysis(
+        _ didCountRep: Bool,
+        _ message: String,
+        _ score: Int?,
+        _ metricValue: CGFloat?,
+        unit: String = "deg"
+    ) -> MovementAnalysis {
+        MovementAnalysis(
+            didCountRep: didCountRep,
+            message: message,
+            score: score,
+            metricTitle: selectedMove.metricTitle,
+            metricValue: metricValue.map { Double($0) },
+            metricUnit: unit
+        )
+    }
+
+    private func analysis(
+        _ didCountRep: Bool,
+        _ message: String,
+        _ score: Int?,
+        _ metricValue: Double?,
+        unit: String
+    ) -> MovementAnalysis {
+        MovementAnalysis(
+            didCountRep: didCountRep,
+            message: message,
+            score: score,
+            metricTitle: selectedMove.metricTitle,
+            metricValue: metricValue,
+            metricUnit: unit
+        )
+    }
+
+    private func correctionTip(for message: String) -> String {
+        if message.contains("hips, knees, ankles") { return "Show lower body" }
+        if message.contains("shoulders, elbows") { return "Show arms" }
+        if message.contains("full body") { return "Step back" }
+        if message.contains("lower") { return "More depth" }
+        if message.contains("stand tall") { return "Extend hips" }
+        if message.contains("Curl higher") { return "Lift torso" }
+        if message.contains("Raise") { return "Hands higher" }
+        if message.contains("wider") { return "Feet wider" }
+        if message.contains("Good rep") { return "Clean rep" }
+        return "Keep steady"
     }
 
     private func isPositiveFeedback(_ message: String) -> Bool {
-        message == "Good rep!"
-            || message.hasPrefix("Depth good")
-            || message.hasPrefix("Open good")
+        let negativeWords = ["Adjust", "Show", "Go a little lower", "Curl higher", "Press until", "Lower a little more", "Raise", "Step feet", "Bring hands"]
+        for word in negativeWords {
+            if message.contains(word) { return false }
+        }
+        return true
+    }
+
+    private func updateCalibration(joints: [PoseJoint: CGPoint]) {
+        let required = selectedMove.requiredJoints
+        let isVisible = required.allSatisfy { joints[$0] != nil }
+        if isVisible {
+            calibrationProgress = min(1.0, calibrationProgress + 0.05)
+        } else {
+            calibrationProgress = max(0.0, calibrationProgress - 0.02)
+        }
     }
 
     private func smooth(joints: [PoseJoint: CGPoint]) -> [PoseJoint: CGPoint] {
@@ -1066,7 +1324,11 @@ extension PoseCameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
                         message: "Adjust your position",
                         fps: fps,
                         processingMs: processingMs,
-                        poseQuality: 0
+                        poseQuality: 0,
+                        score: nil,
+                        metricTitle: self.selectedMove.metricTitle,
+                        metricValueText: "--",
+                        correctionTip: "Find your setup"
                     )
                 }
                 return
@@ -1085,7 +1347,11 @@ extension PoseCameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
                     message: movement.message,
                     fps: fps,
                     processingMs: processingMs,
-                    poseQuality: poseQuality
+                    poseQuality: poseQuality,
+                    score: movement.score,
+                    metricTitle: movement.metricTitle,
+                    metricValueText: movement.metricText,
+                    correctionTip: self.correctionTip(for: movement.message)
                 )
             }
         } catch {
@@ -1098,7 +1364,11 @@ extension PoseCameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
                     message: "Adjust your position",
                     fps: fps,
                     processingMs: processingMs,
-                    poseQuality: 0
+                    poseQuality: 0,
+                    score: nil,
+                    metricTitle: self.selectedMove.metricTitle,
+                    metricValueText: "--",
+                    correctionTip: "Find your setup"
                 )
             }
         }
@@ -1122,39 +1392,13 @@ extension PoseCameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
 
     private func detectJoints(in pixelBuffer: CVPixelBuffer) throws -> [PoseJoint: CGPoint] {
-        if let poseNetModel = poseNetModel,
-           let joints = try detectJointsWithPoseNet(pixelBuffer: pixelBuffer),
-           !joints.isEmpty {
-            return joints
-        }
-
         return try detectJointsWithVisionBodyPose(pixelBuffer: pixelBuffer)
     }
 
-    private func detectJointsWithPoseNet(pixelBuffer: CVPixelBuffer) throws -> [PoseJoint: CGPoint]? {
-        guard let poseNetModel = poseNetModel else {
-            return nil
-        }
-
-        let request = VNCoreMLRequest(model: poseNetModel)
-        request.imageCropAndScaleOption = .scaleFill
-
-        try sequenceHandler.perform([request], on: pixelBuffer, orientation: .leftMirrored)
-
-        guard let observations = request.results as? [VNCoreMLFeatureValueObservation],
-              let heatmap = observations.first(where: { $0.featureName == "heatmap" })?.featureValue.multiArrayValue,
-              let offsets = observations.first(where: { $0.featureName == "offsets" })?.featureValue.multiArrayValue else {
-            return nil
-        }
-
-        return decodePoseNetJoints(heatmap: heatmap, offsets: offsets)
-    }
-
     private func detectJointsWithVisionBodyPose(pixelBuffer: CVPixelBuffer) throws -> [PoseJoint: CGPoint] {
-        let request = VNDetectHumanBodyPoseRequest()
-        try sequenceHandler.perform([request], on: pixelBuffer, orientation: .leftMirrored)
+        try sequenceHandler.perform([bodyPoseRequest], on: pixelBuffer, orientation: .leftMirrored)
 
-        guard let observation = request.results?.first else {
+        guard let observation = bodyPoseRequest.results?.first else {
             return [:]
         }
 
@@ -1170,75 +1414,5 @@ extension PoseCameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
 
         return detectedJoints
-    }
-
-    private func decodePoseNetJoints(heatmap: MLMultiArray, offsets: MLMultiArray) -> [PoseJoint: CGPoint] {
-        let keypoints: [PoseNetKeypoint] = [
-            .leftShoulder, .rightShoulder,
-            .leftElbow, .rightElbow,
-            .leftWrist, .rightWrist,
-            .leftHip, .rightHip,
-            .leftKnee, .rightKnee,
-            .leftAnkle, .rightAnkle
-        ]
-
-        var detectedJoints: [PoseJoint: CGPoint] = [:]
-        let heatmapHeight = heatmap.shape[1].intValue
-        let heatmapWidth = heatmap.shape[2].intValue
-        let outputStride: CGFloat = 16
-        let inputSize: CGFloat = 513
-
-        for keypoint in keypoints {
-            let keypointIndex = keypoint.rawValue
-            var bestScore = -Double.greatestFiniteMagnitude
-            var bestY = 0
-            var bestX = 0
-
-            for y in 0..<heatmapHeight {
-                for x in 0..<heatmapWidth {
-                    let score = heatmapValue(heatmap, keypoint: keypointIndex, y: y, x: x)
-                    if score > bestScore {
-                        bestScore = score
-                        bestY = y
-                        bestX = x
-                    }
-                }
-            }
-
-            let confidence = sigmoid(bestScore)
-            guard confidence > 0.25 else {
-                continue
-            }
-
-            let offsetY = multiArrayValue(offsets, channel: keypointIndex, y: bestY, x: bestX)
-            let offsetX = multiArrayValue(offsets, channel: keypointIndex + 17, y: bestY, x: bestX)
-            let imageX = (CGFloat(bestX) * outputStride + CGFloat(offsetX)) / inputSize
-            let imageY = (CGFloat(bestY) * outputStride + CGFloat(offsetY)) / inputSize
-
-            detectedJoints[keypoint.poseJoint] = CGPoint(
-                x: max(0, min(1, imageX)),
-                y: max(0, min(1, 1 - imageY))
-            )
-        }
-
-        return detectedJoints
-    }
-
-    private func heatmapValue(_ heatmap: MLMultiArray, keypoint: Int, y: Int, x: Int) -> Double {
-        multiArrayValue(heatmap, channel: keypoint, y: y, x: x)
-    }
-
-    private func multiArrayValue(_ array: MLMultiArray, channel: Int, y: Int, x: Int) -> Double {
-        let offset = channel * array.strides[0].intValue
-            + y * array.strides[1].intValue
-            + x * array.strides[2].intValue
-        return array.dataPointer
-            .advanced(by: offset * MemoryLayout<Double>.stride)
-            .assumingMemoryBound(to: Double.self)
-            .pointee
-    }
-
-    private func sigmoid(_ value: Double) -> Double {
-        1 / (1 + exp(-value))
     }
 }

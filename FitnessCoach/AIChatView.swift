@@ -233,7 +233,9 @@ struct AIChatView: View {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .fcInk))
             } else {
-                Button(action: viewModel.sendCurrentMessage) {
+                Button {
+                    viewModel.sendCurrentMessage()
+                } label: {
                     Image(systemName: "paperplane.fill")
                         .foregroundColor(.white)
                         .padding(12)

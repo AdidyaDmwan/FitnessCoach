@@ -15,7 +15,7 @@ struct ContentView: View {
                 .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .accentColor(.fcInk)
+        .accentColor(.fcAccent)
     }
 }
 
@@ -50,7 +50,7 @@ struct MainTabView: View {
                 .tabItem { Label("More", systemImage: "ellipsis.circle") }
                 .tag(4)
         }
-        .accentColor(.fcInk)
+        .accentColor(.fcAccent)
         .navigationBarHidden(true)
         .toolbarBackground(Color.white, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
@@ -110,28 +110,30 @@ struct TabBackContainer<Content: View>: View {
             .padding(.horizontal, 24)
             .padding(.top, 14)
             .padding(.bottom, 10)
-            .background(Color.white)
+            .background(Color.fcBackground)
 
             content
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
     }
 }
 
 struct HomeDashboardView: View {
     @StateObject private var viewModel = DashboardA2AViewModel()
+    @StateObject private var historyStore = WorkoutHistoryStore()
+    @StateObject private var workoutGoalStore = WorkoutGoalStore()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Today")
-                            .font(.system(size: 14, weight: .heavy))
-                            .foregroundColor(.fcMuted)
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(Date().formatted(date: .complete, time: .omitted).uppercased())
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.fcAccent)
 
-                        Text("Fitness Coach")
-                            .font(.system(size: 32, weight: .heavy))
+                        Text("Ready to sweat?")
+                            .font(.system(size: 30, weight: .heavy, design: .rounded))
                             .foregroundColor(.fcInk)
                     }
 
@@ -167,6 +169,13 @@ struct HomeDashboardView: View {
                     }
                 )
 
+                WeeklyWorkoutGoalCard(
+                    historyStore: historyStore,
+                    goalStore: workoutGoalStore
+                )
+
+                WorkoutHistorySummaryCard(historyStore: historyStore)
+
                 HomeWorkoutRecommendationCard(
                     snapshot: viewModel.snapshot,
                     aiWorkout: viewModel.aiWorkout,
@@ -178,8 +187,9 @@ struct HomeDashboardView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
         .onAppear {
+            historyStore.load()
             if viewModel.snapshot == nil {
                 viewModel.refresh()
             }
@@ -303,7 +313,7 @@ struct WorkoutRecommendationView: View {
                 .padding(.bottom, 28)
             }
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
     }
 }
@@ -430,8 +440,9 @@ struct ActiveWorkoutView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 74)
-                        .background(Color.fcInk)
+                        .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                         .clipShape(Capsule())
+                        .shadow(color: Color.fcAccent.opacity(0.3), radius: 10, x: 0, y: 5)
                 }
 
                 Button(action: timerVM.next) {
@@ -458,7 +469,7 @@ struct ActiveWorkoutView: View {
             .padding(.top, 32)
             .padding(.bottom, 34)
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
         .onAppear {
             timerVM.start()
@@ -614,7 +625,7 @@ struct NutritionLogView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
         .sheet(isPresented: $isShowingCalorieSheet) {
             calorieInputSheet
         }
@@ -676,7 +687,7 @@ struct NutritionLogView: View {
                 RingProgress(progress: eatenProgress, lineWidth: 13) {
                     VStack(spacing: 6) {
                         Text("\(store.totalEaten)")
-                            .font(.system(size: 34, weight: .heavy))
+                            .font(.system(size: 34, weight: .heavy, design: .rounded))
                             .foregroundColor(.fcInk)
                         Text("EATEN")
                             .font(.system(size: 14, weight: .heavy))
@@ -713,9 +724,8 @@ struct NutritionLogView: View {
         }
         .padding(24)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
-        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.06), radius: 24, x: 0, y: 12)
     }
 
     private var dailyInsightCard: some View {
@@ -739,8 +749,8 @@ struct NutritionLogView: View {
         }
         .padding(18)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
     }
 
     private var calorieInputSheet: some View {
@@ -762,8 +772,9 @@ struct NutritionLogView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.fcInk)
+                    .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                     .clipShape(Capsule())
+                    .shadow(color: Color.fcAccent.opacity(0.3), radius: 8, x: 0, y: 4)
             }
 
             Spacer()
@@ -842,7 +853,7 @@ struct NutritionLogView: View {
     private func energyMetric(title: String, value: String) -> some View {
         VStack(alignment: title == "Burned" || title == "Balance" ? .trailing : .leading, spacing: 4) {
             Text(value)
-                .font(.system(size: 20, weight: .heavy))
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
                 .foregroundColor(.fcInk)
             Text(title)
                 .font(.system(size: 12, weight: .medium))
@@ -904,7 +915,7 @@ struct ProgressAnalyticsView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
     }
 }
 
@@ -927,9 +938,6 @@ final class UserProfileStore: ObservableObject {
     @Published var appleHealth: Bool {
         didSet { defaults.set(appleHealth, forKey: appleHealthKey) }
     }
-    @Published var darkMode: Bool {
-        didSet { defaults.set(darkMode, forKey: darkModeKey) }
-    }
 
     private let defaults = UserDefaults.standard
     private let nameKey = "profileName"
@@ -938,7 +946,6 @@ final class UserProfileStore: ObservableObject {
     private let unitsKey = "profileUnits"
     private let notificationsKey = "profileNotifications"
     private let appleHealthKey = "profileAppleHealth"
-    private let darkModeKey = "profileDarkMode"
 
     init() {
         name = defaults.string(forKey: nameKey) ?? "Alex Johnson"
@@ -947,7 +954,6 @@ final class UserProfileStore: ObservableObject {
         units = defaults.string(forKey: unitsKey) ?? "Metric"
         notifications = defaults.object(forKey: notificationsKey) == nil ? true : defaults.bool(forKey: notificationsKey)
         appleHealth = defaults.object(forKey: appleHealthKey) == nil ? true : defaults.bool(forKey: appleHealthKey)
-        darkMode = defaults.object(forKey: darkModeKey) == nil ? false : defaults.bool(forKey: darkModeKey)
     }
 }
 
@@ -982,8 +988,8 @@ struct ProfileScreenView: View {
                         )
                     }
                     .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -1027,8 +1033,8 @@ struct ProfileScreenView: View {
                         .padding(16)
                     }
                     .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -1037,19 +1043,18 @@ struct ProfileScreenView: View {
                     VStack(spacing: 0) {
                         SettingsToggleRow(icon: "bell", title: "Notifications", isOn: profileBinding(\.notifications))
                         SettingsToggleRow(icon: "heart", title: "Apple Health", isOn: profileBinding(\.appleHealth))
-                        SettingsToggleRow(icon: "moon", title: "Dark Mode", isOn: profileBinding(\.darkMode))
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
                 }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 28)
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all))
+        .background(Color.fcBackground.edgesIgnoringSafeArea(.all))
         .sheet(isPresented: $isShowingNameSheet) {
             nameSheet
         }
@@ -1130,8 +1135,9 @@ struct ProfileScreenView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.fcInk)
+                    .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                     .clipShape(Capsule())
+                    .shadow(color: Color.fcAccent.opacity(0.3), radius: 8, x: 0, y: 4)
             }
 
             Spacer()
@@ -1160,8 +1166,9 @@ struct ProfileScreenView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.fcInk)
+                    .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                     .clipShape(Capsule())
+                    .shadow(color: Color.fcAccent.opacity(0.3), radius: 8, x: 0, y: 4)
             }
 
             Spacer()
@@ -1236,85 +1243,51 @@ private struct HomeGoalSummaryCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            HStack(alignment: .top) {
+        VStack(spacing: 24) {
+            HStack(spacing: 24) {
+                RingProgress(progress: progress, lineWidth: 16) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.orange)
+                        Text("\(progressPercent)%")
+                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                            .foregroundColor(.fcInk)
+                    }
+                }
+                .frame(width: 110, height: 110)
+                .shadow(color: .orange.opacity(0.25), radius: 12, x: 0, y: 6)
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Active Calories")
                         .font(.system(size: 14, weight: .heavy))
                         .foregroundColor(.fcMuted)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(activeCalories)")
-                            .font(.system(size: 44, weight: .heavy))
+                            .font(.system(size: 38, weight: .heavy, design: .rounded))
                             .foregroundColor(.fcInk)
                         Text("kcal")
-                            .font(.system(size: 18, weight: .heavy))
+                            .font(.system(size: 16, weight: .heavy))
                             .foregroundColor(.fcMuted)
                     }
-                }
-
-                Spacer()
-
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 22, weight: .heavy))
-                    .foregroundColor(.orange)
-                    .frame(width: 48, height: 48)
-                    .background(Color.orange.opacity(0.12))
-                    .clipShape(Circle())
-            }
-
-            ProgressBar(value: progress, height: 7)
-
-            HStack(alignment: .top) {
-                metricColumn(title: "Daily Goal", value: "\(dailyGoal) kcal")
-                Spacer()
-                metricColumn(title: "Progress", value: "\(progressPercent)%")
-                Spacer()
-                metricColumn(title: "Remaining", value: "\(remainingCalories) kcal")
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Daily Goal")
-                        .font(.system(size: 17, weight: .heavy))
-                        .foregroundColor(.fcInk)
-
-                    Spacer()
-
-                    Text("\(dailyGoal) kcal")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundColor(.fcInk)
-                }
-
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.fcLine)
-
-                    GeometryReader { proxy in
-                        Capsule()
-                            .fill(Color.fcInk)
-                            .frame(width: max(26, progress * proxy.size.width))
+                    
+                    HStack {
+                        goalAdjustButton(systemName: "minus", action: decreaseGoal)
+                        goalAdjustButton(systemName: "plus", action: increaseGoal)
+                        Spacer()
+                        Text("Goal: \(dailyGoal)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.fcMuted)
                     }
-                }
-                .frame(height: 4)
-
-                HStack {
-                    Text("Adjust by 25 kcal")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.fcMuted)
-
-                    Spacer()
-
-                    goalAdjustButton(systemName: "minus", action: decreaseGoal)
-                    goalAdjustButton(systemName: "plus", action: increaseGoal)
+                    .padding(.top, 8)
                 }
             }
         }
         .padding(24)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
-        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.06), radius: 24, x: 0, y: 12)
     }
 
     private func metricColumn(title: String, value: String) -> some View {
@@ -1338,6 +1311,127 @@ private struct HomeGoalSummaryCard: View {
                 .clipShape(Circle())
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+private struct WeeklyWorkoutGoalCard: View {
+    @ObservedObject var historyStore: WorkoutHistoryStore
+    @ObservedObject var goalStore: WorkoutGoalStore
+
+    private var sessionProgress: CGFloat {
+        guard goalStore.weeklySessionGoal > 0 else {
+            return 0
+        }
+
+        return min(CGFloat(historyStore.weeklySessions.count) / CGFloat(goalStore.weeklySessionGoal), 1)
+    }
+
+    private var repProgress: CGFloat {
+        guard goalStore.weeklyRepGoal > 0 else {
+            return 0
+        }
+
+        return min(CGFloat(historyStore.weeklyReps) / CGFloat(goalStore.weeklyRepGoal), 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Weekly Goals")
+                        .font(.system(size: 20, weight: .heavy))
+                        .foregroundColor(.fcInk)
+
+                    Text("Track camera workouts this week")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.fcMuted)
+                }
+
+                Spacer()
+
+                Image(systemName: "target")
+                    .font(.system(size: 20, weight: .heavy))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .clipShape(Circle())
+            }
+
+            GoalProgressRow(
+                title: "Sessions",
+                value: "\(historyStore.weeklySessions.count)/\(goalStore.weeklySessionGoal)",
+                progress: sessionProgress,
+                decrease: { goalStore.adjustSessions(by: -1) },
+                increase: { goalStore.adjustSessions(by: 1) }
+            )
+
+            GoalProgressRow(
+                title: "Reps",
+                value: "\(historyStore.weeklyReps)/\(goalStore.weeklyRepGoal)",
+                progress: repProgress,
+                decrease: { goalStore.adjustReps(by: -10) },
+                increase: { goalStore.adjustReps(by: 10) }
+            )
+        }
+        .padding(22)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.06), radius: 24, x: 0, y: 12)
+    }
+}
+
+private struct WorkoutHistorySummaryCard: View {
+    @ObservedObject var historyStore: WorkoutHistoryStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Workout History")
+                        .font(.system(size: 20, weight: .heavy))
+                        .foregroundColor(.fcInk)
+
+                    Text(latestSessionText)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.fcMuted)
+                }
+
+                Spacer()
+
+                Text("\(historyStore.sessions.count)")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(.fcInk)
+                    .frame(width: 48, height: 48)
+                    .background(Color.fcSoft)
+                    .clipShape(Circle())
+            }
+
+            HStack(spacing: 12) {
+                HistoryMetricTile(title: "Week", value: "\(historyStore.weeklySessions.count)", caption: "sessions")
+                HistoryMetricTile(title: "Reps", value: "\(historyStore.totalReps)", caption: "total")
+                HistoryMetricTile(title: "Score", value: historyStore.averageScore == 0 ? "--" : "\(historyStore.averageScore)", caption: "avg")
+            }
+
+            if !historyStore.sessions.isEmpty {
+                VStack(spacing: 10) {
+                    ForEach(historyStore.sessions.prefix(3)) { session in
+                        RecentWorkoutRow(session: session)
+                    }
+                }
+            }
+        }
+        .padding(22)
+        .background(Color.fcInk)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.18), radius: 24, x: 0, y: 12)
+    }
+
+    private var latestSessionText: String {
+        guard let session = historyStore.latestSession else {
+            return "No camera workout saved yet"
+        }
+
+        return "Last: \(session.move.shortTitle), \(session.reps) reps"
     }
 }
 
@@ -1456,7 +1550,7 @@ private struct HealthStatusCard: View {
         }
         .padding(18)
         .background(Color.fcSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var statusText: String {
@@ -1687,6 +1781,112 @@ private struct PlanSummaryTile: View {
     }
 }
 
+private struct GoalProgressRow: View {
+    let title: String
+    let value: String
+    let progress: CGFloat
+    let decrease: () -> Void
+    let increase: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundColor(.fcInk)
+
+                Spacer()
+
+                Text(value)
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(.fcInk)
+
+                Button(action: decrease) {
+                    Image(systemName: "minus")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.fcInk)
+                        .frame(width: 28, height: 28)
+                        .background(Color.fcSoft)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Button(action: increase) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.fcInk)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+
+            ProgressBar(value: progress, height: 7)
+        }
+    }
+}
+
+private struct HistoryMetricTile: View {
+    let title: String
+    let value: String
+    let caption: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(0.62))
+
+            Text(value)
+                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+
+            Text(caption)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white.opacity(0.62))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.white.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct RecentWorkoutRow: View {
+    let session: WorkoutSessionRecord
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundColor(.fcInk)
+                .frame(width: 34, height: 34)
+                .background(Color.white)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(session.move.shortTitle)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundColor(.white)
+
+                Text(session.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white.opacity(0.62))
+            }
+
+            Spacer()
+
+            Text("\(session.reps) reps")
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 private struct WorkoutPlanRow: View {
     let exercise: WorkoutPlanExercise
 
@@ -1747,8 +1947,9 @@ private struct WorkoutPlanRow: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .frame(height: 50)
-                    .background(Color.fcInk)
+                    .background(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .shadow(color: Color.fcAccent.opacity(0.3), radius: 6, x: 0, y: 3)
                 }
                 .buttonStyle(PlainButtonStyle())
             } else {
@@ -1773,8 +1974,8 @@ private struct WorkoutPlanRow: View {
         }
         .padding(18)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -1803,8 +2004,8 @@ private struct MealRow: View {
             }
             .padding(20)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1853,7 +2054,7 @@ private struct WaterCard: View {
         }
         .padding(24)
         .background(Color.fcSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private func waterButton(systemName: String, action: @escaping () -> Void) -> some View {
@@ -1900,8 +2101,8 @@ private struct WeeklyActivityCard: View {
         }
         .padding(24)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.06), radius: 24, x: 0, y: 12)
     }
 }
 
@@ -1932,8 +2133,8 @@ private struct WeightCard: View {
         }
         .padding(24)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.06), radius: 24, x: 0, y: 12)
     }
 }
 
@@ -1953,7 +2154,7 @@ private struct MetricTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(Color.fcSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
@@ -1990,8 +2191,8 @@ private struct ProfileStatTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.fcLine, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.fcInk.opacity(0.04), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -2078,8 +2279,10 @@ private struct SettingsToggleRow: View {
         HStack {
             Image(systemName: icon)
                 .frame(width: 22)
+                .foregroundColor(.fcInk)
             Text(title)
                 .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.fcInk)
             Spacer()
             Toggle("", isOn: $isOn)
                 .labelsHidden()
@@ -2108,7 +2311,7 @@ private struct RingProgress<Content: View>: View {
 
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(Color.fcInk, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(AngularGradient(gradient: Gradient(colors: [.fcAccent, .fcInk, .fcAccent]), center: .center), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
             content
@@ -2126,7 +2329,7 @@ private struct ProgressBar: View {
                 Capsule()
                     .fill(Color.fcSoft)
                 Capsule()
-                    .fill(Color.fcInk)
+                    .fill(LinearGradient(colors: [.fcAccent, .fcInk], startPoint: .leading, endPoint: .trailing))
                     .frame(width: proxy.size.width * value)
             }
         }
@@ -2302,11 +2505,13 @@ private struct LineChartShape: Shape {
 }
 
 extension Color {
-    static let fcInk = Color(red: 0.055, green: 0.055, blue: 0.055)
-    static let fcMuted = Color(red: 0.43, green: 0.43, blue: 0.43)
-    static let fcMedium = Color(red: 0.68, green: 0.68, blue: 0.68)
-    static let fcLine = Color(red: 0.90, green: 0.90, blue: 0.90)
-    static let fcSoft = Color(red: 0.95, green: 0.95, blue: 0.95)
+    static let fcInk = Color(red: 0.08, green: 0.15, blue: 0.28) // Deep Navy Blue
+    static let fcAccent = Color(red: 0.15, green: 0.45, blue: 1.0) // Vibrant Bright Blue
+    static let fcMuted = Color(red: 0.45, green: 0.50, blue: 0.58) // Cool Gray
+    static let fcMedium = Color(red: 0.70, green: 0.75, blue: 0.82)
+    static let fcLine = Color(red: 0.90, green: 0.92, blue: 0.96)
+    static let fcSoft = Color(red: 0.95, green: 0.97, blue: 1.0) // Ice White
+    static let fcBackground = Color(red: 0.97, green: 0.98, blue: 0.99)
 }
 
 private extension Date {
